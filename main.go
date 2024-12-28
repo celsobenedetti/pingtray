@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -23,6 +25,10 @@ var (
 )
 
 func main() {
+	if _, err := url.ParseRequestURI(endpoint); err != nil {
+		log.Fatalln("Invalid endpoint URL")
+	}
+
 	systray.Run(onReady, onExit)
 }
 
