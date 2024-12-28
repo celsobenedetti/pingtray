@@ -28,10 +28,10 @@ func main() {
 
 func onReady() {
 	readIconFromFS(iconPath)
-	quitButton := systray.AddMenuItem("Quit", "quit")
 	fetchAndUpdate()
 
 	ticker := time.NewTicker(updateInterval)
+	quitButton := systray.AddMenuItem("Quit", "quit")
 
 	for {
 		select {
