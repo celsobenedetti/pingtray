@@ -19,20 +19,35 @@ func sleep(seconds time.Duration) {
 	time.Sleep(seconds * time.Second)
 }
 
+func updateLoop(updateCh chan struct{}) {
+	for {
+		sleep(2)
+		updateCh <- struct{}{}
+	}
+}
+
 func onReady() {
 	systray.SetIcon(readIcon())
 
+	quit := systray.AddMenuItem("Quit", "quit")
+
+	updateCh := make(chan struct{})
+	go updateLoop(updateCh)
+
 	var status string
 	for {
-		status = "❌"
-		sleep(2)
-
-		systray.SetTitle(" ...")
-		_, err := http.DefaultClient.Get("http://localhost:3001")
-		if err == nil {
-			status = "✅"
+		select {
+		case <-quit.ClickedCh:
+			os.Exit(1)
+		case <-updateCh:
+			status = "❌"
+			systray.SetTitle(" ...")
+			_, err := http.DefaultClient.Get("http://localhost:3001")
+			if err == nil {
+				status = "✅"
+			}
+			systray.SetTitle(status)
 		}
-		systray.SetTitle(status)
 	}
 }
 
