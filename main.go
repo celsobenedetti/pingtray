@@ -9,59 +9,56 @@ import (
 	"github.com/getlantern/systray/example/icon"
 )
 
-func main() {
-	http.DefaultClient.Timeout = 2 * time.Second
+const (
+	requestTimeout = 2 * time.Second
+	updateInterval = 2 * time.Second
+	successStaus   = "✅"
+	failureStatus  = "❌"
+	loadingStatus  = "..."
+)
 
+var (
+	iconPath = os.Getenv("SYSTRAY_ICON") // .ico or .png
+	endpoint = os.Getenv("SYSTRAY_ENDPOINT")
+	client   = &http.Client{Timeout: requestTimeout}
+)
+
+func main() {
 	systray.Run(onReady, onExit)
 }
 
-func sleep(seconds time.Duration) {
-	time.Sleep(seconds * time.Second)
-}
-
-func updateLoop(updateCh chan struct{}) {
-	for {
-		sleep(2)
-		updateCh <- struct{}{}
-	}
-}
-
 func onReady() {
-	systray.SetIcon(readIcon())
+	systray.SetIcon(readIconFromFS(iconPath))
+	quitButton := systray.AddMenuItem("Quit", "quit")
+	fetchAndUpdate()
 
-	quit := systray.AddMenuItem("Quit", "quit")
+	ticker := time.NewTicker(updateInterval)
 
-	updateCh := make(chan struct{})
-	go updateLoop(updateCh)
-
-	var status string
 	for {
 		select {
-		case <-quit.ClickedCh:
-			os.Exit(1)
-		case <-updateCh:
-			status = "❌"
-			systray.SetTitle(" ...")
-			_, err := http.DefaultClient.Get("http://localhost:3001")
-			if err == nil {
-				status = "✅"
-			}
-			systray.SetTitle(status)
+		case <-ticker.C:
+			fetchAndUpdate()
+		case <-quitButton.ClickedCh:
+			systray.Quit()
 		}
 	}
 }
 
-func onExit() {
-	// clean up here
+func fetchAndUpdate() {
+	systray.SetTitle(loadingStatus)
+	if _, err := client.Get(endpoint); err != nil {
+		systray.SetTitle(failureStatus)
+		return
+	}
+	systray.SetTitle(successStaus)
 }
 
-func readIcon() []byte {
-	path := "/home/celso/chatbot/packages/admin/public/static/images/ocelot_avatar.png"
-
+func readIconFromFS(path string) []byte {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
-		bytes = icon.Data
+		bytes = icon.Data // Default icon
 	}
-
 	return bytes
 }
+
+func onExit() {}
