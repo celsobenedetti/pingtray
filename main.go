@@ -6,11 +6,10 @@ import (
 	"time"
 
 	systray "github.com/getlantern/systray"
-	"github.com/getlantern/systray/example/icon"
 )
 
 const (
-	requestTimeout = 2 * time.Second
+	requestTimeout = 5 * time.Second
 	updateInterval = 2 * time.Second
 	successStaus   = "✅"
 	failureStatus  = "❌"
@@ -28,7 +27,7 @@ func main() {
 }
 
 func onReady() {
-	systray.SetIcon(readIconFromFS(iconPath))
+	readIconFromFS(iconPath)
 	quitButton := systray.AddMenuItem("Quit", "quit")
 	fetchAndUpdate()
 
@@ -53,12 +52,12 @@ func fetchAndUpdate() {
 	systray.SetTitle(successStaus)
 }
 
-func readIconFromFS(path string) []byte {
+func readIconFromFS(path string) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
-		bytes = icon.Data // Default icon
+		return
 	}
-	return bytes
+	systray.SetIcon(bytes)
 }
 
 func onExit() {}
